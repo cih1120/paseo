@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "../support/fixtures";
 import { TerminalE2EHarness } from "../support/helpers/terminal-dsl";
+import { openCommandCenter, closeCommandCenter } from "../support/helpers/command-center";
 
 interface AttachOverlayProbeWindow extends Window {
   __terminalAttachOverlaySeen?: boolean;
@@ -62,42 +63,43 @@ test.describe("retained terminal tab streams", () => {
 
   test("workspace number shortcuts refocus a retained terminal", async ({ page }) => {
     const first = await harness.createTerminal({ name: "focus-first" });
-    const other = await TerminalE2EHarness.create({ tempPrefix: "terminal-workspace-focus-" });
-    try {
-      const second = await other.createTerminal({ name: "focus-second" });
-      await harness.openTerminal(page, { terminalId: first.id });
-      await other.openTerminal(page, { terminalId: second.id });
-      const rows = page
-        .locator('[data-testid^="sidebar-workspace-row-"]')
-        .filter({ visible: true });
-      const rowIds = await rows.evaluateAll((elements) => {
-        const ids: Array<string | null> = [];
-        for (const element of elements) ids.push(element.getAttribute("data-testid"));
-        return ids;
-      });
-      const firstIndex = rowIds.findIndex((id) => id?.endsWith(`:${harness.workspaceId}`)) + 1;
-      const secondIndex = rowIds.findIndex((id) => id?.endsWith(`:${other.workspaceId}`)) + 1;
-      expect(firstIndex).toBeGreaterThan(0);
-      expect(secondIndex).toBeGreaterThan(0);
-      const terminalInput = page
-        .getByTestId("terminal-surface")
-        .filter({ visible: true })
-        .locator("textarea");
-      await expect(terminalInput).toBeFocused();
-      // Browser Alt+Digit routes the same workspace action as desktop Cmd+Digit.
-      await page.keyboard.press(`Alt+${firstIndex}`);
-      await expect(page).toHaveURL(new RegExp(`/workspace/${harness.workspaceId}`));
-      await expect(terminalInput).toBeFocused();
-      await page.keyboard.press(`Alt+${secondIndex}`);
-      await expect(page).toHaveURL(new RegExp(`/workspace/${other.workspaceId}`));
-      await expect(terminalInput).toBeFocused();
-      await page.keyboard.type("printf 'WORKSPACE_FOCUS_OK\\n'");
-      await page.keyboard.press("Enter");
-      await expect
-        .poll(async () => (await other.client.captureTerminal(second.id)).lines)
-        .toContain("WORKSPACE_FOCUS_OK");
-    } finally {
-      await other.cleanup();
-    }
+    const other = await harness.createOtherWorkspace();
+    const second = await other.createTerminal({ name: "focus-second" });
+    await harness.openTerminal(page, { terminalId: first.id });
+    await other.openTerminal(page, { terminalId: second.id });
+    await other.expectTerminalFocused(page);
+    await harness.switchToWorkspaceByShortcut(page);
+    await harness.expectTerminalFocused(page);
+    await other.switchToWorkspaceByShortcut(page);
+    await other.expectTerminalFocused(page);
+    await other.typeCommandAndExpectOutput(page, {
+      terminalId: second.id,
+      command: "printf 'WORKSPACE_FOCUS_OK\\n'",
+      output: "WORKSPACE_FOCUS_OK",
+    });
+  });
+
+  test("closing an overlay after returning to a workspace refocuses its terminal", async ({
+    page,
+  }) => {
+    const first = await harness.createTerminal({ name: "overlay-first" });
+    const other = await harness.createOtherWorkspace();
+    const second = await other.createTerminal({ name: "overlay-second" });
+    await harness.openTerminal(page, { terminalId: first.id });
+    await other.openTerminal(page, { terminalId: second.id });
+    await harness.switchToWorkspaceByShortcut(page);
+    await harness.expectTerminalFocused(page);
+    await harness.rememberWorkspaceForHistoryReturn(page);
+    await other.switchToWorkspaceByShortcut(page);
+    const overlay = await openCommandCenter(page);
+    await harness.returnToWorkspaceThroughHistory(page);
+    await expect(overlay.getByTestId("command-center-input")).toBeFocused();
+    await closeCommandCenter(page);
+    await harness.expectTerminalFocused(page);
+    await harness.typeCommandAndExpectOutput(page, {
+      terminalId: first.id,
+      command: "printf 'OVERLAY_FOCUS_OK\\n'",
+      output: "OVERLAY_FOCUS_OK",
+    });
   });
 });

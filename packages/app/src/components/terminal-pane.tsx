@@ -2,7 +2,7 @@ import { TerminalFind, type TerminalPaneFindHandle } from "@/terminal/find";
 import type { TerminalFindResult } from "@/terminal/runtime/terminal-emulator-runtime";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useRetainedPanelActive } from "@/components/retained-panel";
-import { hasActiveWebOverlay } from "@/lib/overlay-root";
+import { hasActiveWebOverlay, subscribeWebOverlayChanges } from "@/lib/overlay-root";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -386,8 +386,8 @@ export function TerminalPane({
       return;
     }
     const focusKey = `${scopeKey}:${terminalId}`;
-    if (lastAutoFocusKeyRef.current !== focusKey) {
-      lastAutoFocusKeyRef.current = focusKey;
+    if (lastAutoFocusKeyRef.current === focusKey) return;
+    function tryAutoFocus(): boolean {
       if (isWeb) {
         const active = document.activeElement;
         const hasFocusedInput =
@@ -396,11 +396,32 @@ export function TerminalPane({
           !active.matches(".xterm-helper-textarea") &&
           active.getClientRects().length > 0;
         if (hasActiveWebOverlay() || hasFocusedInput) {
-          return;
+          return false;
         }
       }
       requestTerminalFocus();
+      lastAutoFocusKeyRef.current = focusKey;
+      return true;
     }
+    if (tryAutoFocus() || !isWeb) return;
+
+    let retryFrame: number | null = null;
+    function stopRetrying(): void {
+      document.removeEventListener("focusout", scheduleRetry);
+      unsubscribeOverlayChanges();
+      if (retryFrame !== null) window.cancelAnimationFrame(retryFrame);
+    }
+    function scheduleRetry(): void {
+      if (retryFrame !== null) return;
+      // Let blur, overlay teardown, and focus restoration settle before checking ownership.
+      retryFrame = window.requestAnimationFrame(() => {
+        retryFrame = null;
+        if (tryAutoFocus()) stopRetrying();
+      });
+    }
+    const unsubscribeOverlayChanges = subscribeWebOverlayChanges(scheduleRetry);
+    document.addEventListener("focusout", scheduleRetry);
+    return stopRetrying;
   }, [
     isMobile,
     isPaneFocused,

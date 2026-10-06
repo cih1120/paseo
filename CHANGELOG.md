@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- Fixed retained terminals not regaining keyboard focus after switching back to their workspace with a number shortcut.
+- Fixed retained terminals not regaining keyboard focus after switching back to their workspace, including when an overlay or another input delays focus until it is released.
 
 ## 0.11.0-beta.5 - 2026-10-06
 
