@@ -2,7 +2,7 @@ import { ActivityIndicator, View, type ViewStyle } from "react-native";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { ChevronDown, ChevronRight, CircleAlert } from "lucide-react-native";
 import { ProjectIconView } from "@/components/project-icon-view";
-import { STATUS_BUCKET_LABELS } from "@/hooks/sidebar-status-view-model";
+import { getStatusBucketLabel } from "@/hooks/sidebar-status-view-model";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import type { SidebarStateBucket } from "@/utils/sidebar-agent-state";
 import {
@@ -177,7 +177,7 @@ function ProjectStatusBadge({
     return (
       <View
         role="status"
-        accessibilityLabel={STATUS_BUCKET_LABELS[statusBucket]}
+        accessibilityLabel={getStatusBucketLabel(statusBucket)}
         style={styles.statusRingAnchor}
         testID="project-status-badge"
       >
@@ -188,7 +188,7 @@ function ProjectStatusBadge({
   return (
     <View
       role="status"
-      accessibilityLabel={STATUS_BUCKET_LABELS[statusBucket]}
+      accessibilityLabel={getStatusBucketLabel(statusBucket)}
       style={[styles.statusBadge, getStatusBadgeBackdropStyle(backdrop)]}
       testID="project-status-badge"
     >

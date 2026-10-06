@@ -91,13 +91,14 @@ export function ChecksSection({
           </Text>
           {summary.parts.length > 0 ? (
             <Text style={styles.detail} numberOfLines={1} testID="pr-pane-check-summary">
+              {summary.detailLead}
               {summary.parts.map((part, index) => (
                 <Text key={part.status}>
                   {index > 0 ? ", " : ""}
                   <Text testID={PART_TEST_ID[part.status]}>{part.text}</Text>
                 </Text>
               ))}
-              {` ${summary.countNoun}`}
+              {summary.detailTrail}
             </Text>
           ) : null}
         </View>

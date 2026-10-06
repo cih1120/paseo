@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { i18n } from "@/i18n/i18next";
 import type { CheckStatus } from "./check-status";
 import { summarizeChecks } from "./checks-summary";
 import type { PrPaneCheck } from "./data";
@@ -62,7 +63,29 @@ describe("summarizeChecks", () => {
   it("says check rather than checks for a run of one", () => {
     const summary = summarizeChecks([check("build", "failure")]);
 
-    expect(summary.countNoun).toBe("check");
     expect(summary.detail).toBe("1 failing check");
+  });
+
+  it("reads in the active app language", async () => {
+    await i18n.changeLanguage("fr");
+    try {
+      const summary = summarizeChecks([
+        check("build", "success"),
+        check("deploy", "skipped"),
+        check("lint", "failure"),
+        check("test", "failure"),
+      ]);
+
+      expect(summary.headline).toBe("Certaines vérifications ont échoué");
+      expect(summary.detail).toBe("Vérifications : 2 en échec, 1 réussie(s), 1 ignorée(s)");
+      expect(summary.groups.map((group) => group.label)).toEqual([
+        "2 vérifications en échec",
+        "1 vérification réussie",
+        "1 vérification ignorée",
+      ]);
+      expect(summarizeChecks([]).headline).toBe("Aucune vérification");
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });
