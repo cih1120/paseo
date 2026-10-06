@@ -113,6 +113,10 @@ export function hasActiveWebOverlay(): boolean {
   return getTopWebOverlay() !== undefined;
 }
 
+export function isWithinActiveWebOverlay(target: EventTarget | null): boolean {
+  return target instanceof Node && (getTopWebOverlay()?.getScope()?.contains(target) ?? false);
+}
+
 export function subscribeWebOverlayChanges(listener: () => void): () => void {
   webOverlayChangeListeners.add(listener);
   return () => {

@@ -164,6 +164,13 @@ export class TerminalE2EHarness {
     await expect(page).toHaveURL(new RegExp(`/workspace/${this.workspaceId}`));
   }
 
+  async moveFocusWithinCommandCenter(page: Page): Promise<void> {
+    const panel = page.getByTestId("command-center-panel");
+    await expect(panel.getByTestId("command-center-input")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(panel.getByRole("button").first()).toBeFocused();
+  }
+
   async closeOverlayAndFocusButtonBeforeRetry(page: Page): Promise<void> {
     await page.clock.install();
     await page.clock.pauseAt(new Date());

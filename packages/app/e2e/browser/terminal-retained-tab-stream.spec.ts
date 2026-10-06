@@ -103,6 +103,28 @@ test.describe("retained terminal tab streams", () => {
     });
   });
 
+  test("moving focus inside an overlay preserves deferred terminal focus", async ({ page }) => {
+    const first = await harness.createTerminal({ name: "overlay-move-first" });
+    const other = await harness.createOtherWorkspace();
+    const second = await other.createTerminal({ name: "overlay-move-second" });
+    await harness.openTerminal(page, { terminalId: first.id });
+    await other.openTerminal(page, { terminalId: second.id });
+    await harness.switchToWorkspaceByShortcut(page);
+    await harness.expectTerminalFocused(page);
+    await harness.rememberWorkspaceForHistoryReturn(page);
+    await other.switchToWorkspaceByShortcut(page);
+    await openCommandCenter(page);
+    await harness.returnToWorkspaceThroughHistory(page);
+    await harness.moveFocusWithinCommandCenter(page);
+    await closeCommandCenter(page);
+    await harness.expectTerminalFocused(page);
+    await harness.typeCommandAndExpectOutput(page, {
+      terminalId: first.id,
+      command: "printf 'OVERLAY_MOVE_FOCUS_OK\\n'",
+      output: "OVERLAY_MOVE_FOCUS_OK",
+    });
+  });
+
   test("deferred terminal focus does not steal focus from a button", async ({ page }) => {
     const first = await harness.createTerminal({ name: "button-first" });
     const other = await harness.createOtherWorkspace();

@@ -2,7 +2,11 @@ import { TerminalFind, type TerminalPaneFindHandle } from "@/terminal/find";
 import type { TerminalFindResult } from "@/terminal/runtime/terminal-emulator-runtime";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useRetainedPanelActive } from "@/components/retained-panel";
-import { hasActiveWebOverlay, subscribeWebOverlayChanges } from "@/lib/overlay-root";
+import {
+  hasActiveWebOverlay,
+  isWithinActiveWebOverlay,
+  subscribeWebOverlayChanges,
+} from "@/lib/overlay-root";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -408,9 +412,13 @@ export function TerminalPane({
     let retryFrame: number | null = null;
     function stopRetrying(): void {
       document.removeEventListener("focusout", scheduleRetry);
-      document.removeEventListener("focusin", stopRetrying);
+      document.removeEventListener("focusin", handleFocusIn);
       unsubscribeOverlayChanges();
       if (retryFrame !== null) window.cancelAnimationFrame(retryFrame);
+    }
+    function handleFocusIn(event: FocusEvent): void {
+      // Moving within the overlay does not replace the deferred workspace focus owner.
+      if (!isWithinActiveWebOverlay(event.target)) stopRetrying();
     }
     function scheduleRetry(): void {
       if (retryFrame !== null) return;
@@ -422,8 +430,8 @@ export function TerminalPane({
     }
     const unsubscribeOverlayChanges = subscribeWebOverlayChanges(scheduleRetry);
     document.addEventListener("focusout", scheduleRetry);
-    // A new focus owner wins over a deferred workspace autofocus request.
-    document.addEventListener("focusin", stopRetrying);
+    // A new focus owner outside the overlay wins over deferred workspace autofocus.
+    document.addEventListener("focusin", handleFocusIn);
     return stopRetrying;
   }, [
     isMobile,
