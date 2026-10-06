@@ -408,6 +408,7 @@ export function TerminalPane({
     let retryFrame: number | null = null;
     function stopRetrying(): void {
       document.removeEventListener("focusout", scheduleRetry);
+      document.removeEventListener("focusin", stopRetrying);
       unsubscribeOverlayChanges();
       if (retryFrame !== null) window.cancelAnimationFrame(retryFrame);
     }
@@ -421,6 +422,8 @@ export function TerminalPane({
     }
     const unsubscribeOverlayChanges = subscribeWebOverlayChanges(scheduleRetry);
     document.addEventListener("focusout", scheduleRetry);
+    // A new focus owner wins over a deferred workspace autofocus request.
+    document.addEventListener("focusin", stopRetrying);
     return stopRetrying;
   }, [
     isMobile,

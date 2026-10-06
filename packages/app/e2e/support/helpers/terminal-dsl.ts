@@ -164,6 +164,22 @@ export class TerminalE2EHarness {
     await expect(page).toHaveURL(new RegExp(`/workspace/${this.workspaceId}`));
   }
 
+  async closeOverlayAndFocusButtonBeforeRetry(page: Page): Promise<void> {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("command-center-panel")).toBeHidden();
+    await page.getByTestId("sidebar-search").focus();
+    await page.clock.runFor(100);
+    await page.clock.resume();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+  }
+
   async expectTerminalFocused(page: Page): Promise<void> {
     await expect(
       this.terminalSurface(page).filter({ visible: true }).locator(".xterm-helper-textarea"),

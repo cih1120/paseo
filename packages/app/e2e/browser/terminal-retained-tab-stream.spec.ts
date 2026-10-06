@@ -102,4 +102,23 @@ test.describe("retained terminal tab streams", () => {
       output: "OVERLAY_FOCUS_OK",
     });
   });
+
+  test("deferred terminal focus does not steal focus from a button", async ({ page }) => {
+    const first = await harness.createTerminal({ name: "button-first" });
+    const other = await harness.createOtherWorkspace();
+    const second = await other.createTerminal({ name: "button-second" });
+    await harness.openTerminal(page, { terminalId: first.id });
+    await other.openTerminal(page, { terminalId: second.id });
+    await harness.switchToWorkspaceByShortcut(page);
+    await harness.expectTerminalFocused(page);
+    await harness.rememberWorkspaceForHistoryReturn(page);
+    await other.switchToWorkspaceByShortcut(page);
+    const overlay = await openCommandCenter(page);
+    await harness.returnToWorkspaceThroughHistory(page);
+    await expect(overlay.getByTestId("command-center-input")).toBeFocused();
+    await harness.closeOverlayAndFocusButtonBeforeRetry(page);
+    await expect(page.getByTestId("sidebar-search")).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(overlay).toBeVisible();
+  });
 });
