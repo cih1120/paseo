@@ -1,5 +1,5 @@
 import { classifyCheck, type CheckPresentation } from "@/git/check-presentation";
-import { i18n } from "@/i18n/i18next";
+import type { TFunction } from "i18next";
 import type { PrPaneCheck } from "./data";
 
 /**
@@ -60,7 +60,7 @@ export interface ChecksSummary {
  * header, the ring, and the grouped list all read from one derivation instead of each
  * filtering the array again with its own idea of what counts.
  */
-export function summarizeChecks(checks: readonly PrPaneCheck[]): ChecksSummary {
+export function summarizeChecks(checks: readonly PrPaneCheck[], t: TFunction): ChecksSummary {
   const groups: ChecksGroup[] = [];
   const parts: ChecksCountPart[] = [];
 
@@ -71,7 +71,7 @@ export function summarizeChecks(checks: readonly PrPaneCheck[]): ChecksSummary {
     }
     groups.push({
       status,
-      label: i18n.t(`${COPY}.${matching.length === 1 ? "groupOne" : "groupMany"}.${status}`, {
+      label: t(`${COPY}.${matching.length === 1 ? "groupOne" : "groupMany"}.${status}`, {
         count: matching.length,
       }),
       checks: matching,
@@ -79,15 +79,15 @@ export function summarizeChecks(checks: readonly PrPaneCheck[]): ChecksSummary {
     parts.push({
       status,
       count: matching.length,
-      text: i18n.t(`${COPY}.count.${status}`, { count: matching.length }),
+      text: t(`${COPY}.count.${status}`, { count: matching.length }),
     });
   }
 
   const outcome = selectOutcome(checks);
-  const { lead, trail } = detailFrame(checks.length);
+  const { lead, trail } = detailFrame(checks.length, t);
   return {
     outcome,
-    headline: i18n.t(`${COPY}.headline.${outcome}`),
+    headline: t(`${COPY}.headline.${outcome}`),
     parts,
     detailLead: lead,
     detailTrail: trail,
@@ -126,9 +126,9 @@ function selectOutcome(checks: readonly PrPaneCheck[]): ChecksOutcome {
  * The header renders each count phrase on its own, so the translated line is split around
  * where the phrases go.
  */
-function detailFrame(total: number): { lead: string; trail: string } {
+function detailFrame(total: number, t: TFunction): { lead: string; trail: string } {
   const marker = "\u0000";
-  const line = i18n.t(`${COPY}.${total === 1 ? "detailOne" : "detailMany"}`, { parts: marker });
+  const line = t(`${COPY}.${total === 1 ? "detailOne" : "detailMany"}`, { parts: marker });
   const [lead = "", trail = ""] = line.split(marker);
   return { lead, trail };
 }

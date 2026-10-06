@@ -1,4 +1,4 @@
-import { i18n } from "@/i18n/i18next";
+import type { TFunction } from "i18next";
 import { STATUS_BUCKET_ORDER } from "@/utils/sidebar-agent-state";
 import type { SidebarWorkspaceEntry } from "@/hooks/sidebar-workspaces-view-model";
 
@@ -14,8 +14,8 @@ const STATUS_BUCKET_LABEL_KEYS = {
   done: "sidebar.statusBucket.done",
 } as const satisfies Record<StatusBucket, string>;
 
-export function getStatusBucketLabel(bucket: StatusBucket): string {
-  return i18n.t(STATUS_BUCKET_LABEL_KEYS[bucket]);
+export function getStatusBucketLabel(bucket: StatusBucket, t: TFunction): string {
+  return t(STATUS_BUCKET_LABEL_KEYS[bucket]);
 }
 
 export interface StatusGroup {
@@ -27,6 +27,7 @@ export interface StatusGroup {
 export function buildStatusGroups(
   workspaces: SidebarWorkspaceEntry[],
   projectNamesByViewKey: Map<string, string>,
+  t: TFunction,
 ): StatusGroup[] {
   const bucketRows = new Map<StatusBucket, SidebarWorkspaceEntry[]>();
 
@@ -47,7 +48,7 @@ export function buildStatusGroups(
     if (!rows || rows.length === 0) continue;
 
     rows.sort((a, b) => compareStatusRows(a, b, projectNamesByViewKey));
-    groups.push({ bucket, label: getStatusBucketLabel(bucket), rows });
+    groups.push({ bucket, label: getStatusBucketLabel(bucket, t), rows });
   }
 
   return groups;
