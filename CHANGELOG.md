@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Fixed retained terminals not regaining keyboard focus after switching back to their workspace with a number shortcut.
+
 ## 0.11.0-beta.5 - 2026-10-06
 
 ### Added

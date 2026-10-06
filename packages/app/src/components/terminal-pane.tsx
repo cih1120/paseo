@@ -2,6 +2,7 @@ import { TerminalFind, type TerminalPaneFindHandle } from "@/terminal/find";
 import type { TerminalFindResult } from "@/terminal/runtime/terminal-emulator-runtime";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useRetainedPanelActive } from "@/components/retained-panel";
+import { hasActiveWebOverlay } from "@/lib/overlay-root";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -68,7 +69,7 @@ import {
   type TerminalResizeRequest,
 } from "./terminal-resize-debouncer";
 import { useIsCompactFormFactor } from "@/constants/layout";
-import { isNative } from "@/constants/platform";
+import { isNative, isWeb } from "@/constants/platform";
 import {
   applyTerminalRendererReadyChange,
   resolveTerminalStreamTarget,
@@ -377,19 +378,39 @@ export function TerminalPane({
   );
 
   useEffect(() => {
-    if (isMobile || !isPaneFocused || !terminalId) {
+    if (isMobile || !isPaneFocused || !isWorkspaceFocused || !terminalId) {
       lastAutoFocusKeyRef.current = null;
       return;
     }
-    if (!isWorkspaceFocused) {
+    if (rendererReadyStreamKey !== terminalStreamKey) {
       return;
     }
     const focusKey = `${scopeKey}:${terminalId}`;
     if (lastAutoFocusKeyRef.current !== focusKey) {
       lastAutoFocusKeyRef.current = focusKey;
+      if (isWeb) {
+        const active = document.activeElement;
+        const hasFocusedInput =
+          active instanceof HTMLElement &&
+          active.matches('input, textarea, [contenteditable="true"]') &&
+          !active.matches(".xterm-helper-textarea") &&
+          active.getClientRects().length > 0;
+        if (hasActiveWebOverlay() || hasFocusedInput) {
+          return;
+        }
+      }
       requestTerminalFocus();
     }
-  }, [isMobile, isPaneFocused, isWorkspaceFocused, requestTerminalFocus, scopeKey, terminalId]);
+  }, [
+    isMobile,
+    isPaneFocused,
+    isWorkspaceFocused,
+    rendererReadyStreamKey,
+    requestTerminalFocus,
+    scopeKey,
+    terminalId,
+    terminalStreamKey,
+  ]);
 
   useEffect(() => {
     const canRequest = canRequestFocusClaim({
